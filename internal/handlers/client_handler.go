@@ -30,7 +30,7 @@ func (h *ClientHandler) Create(c *gin.Context) {
 		return
 	}
 
-	err = h.service.CreateClient(request)
+	mutation, err := h.service.CreateClient(request)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -41,6 +41,7 @@ func (h *ClientHandler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "client created successfully",
+		"message":         "client created successfully",
+		"pipefy_mutation": mutation,
 	})
 }

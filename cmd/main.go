@@ -5,6 +5,7 @@ import (
 
 	"client-core/internal/database"
 	"client-core/internal/handlers"
+	"client-core/internal/pipefy"
 	"client-core/internal/repository"
 	"client-core/internal/service"
 
@@ -17,14 +18,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	defer db.Close()
 
 	clientRepository := repository.NewClientRepository(db)
 
-	clientService := service.NewClientService(clientRepository)
+	webhookRepository := repository.NewWebhookRepository(db)
+
+	pipefyClient := pipefy.NewPipefyClient()
+	clientService := service.NewClientService(clientRepository, pipefyClient, 34)
 
 	clientHandler := handlers.NewClientHandler(clientService)
+
+	webhookService := service.NewWebhookService(clientRepository, webhookRepository, pipefyClient)
+	webhookHandler := handlers.NewWebhookHandler(webhookService)
 
 	router := gin.Default()
 
@@ -34,7 +41,8 @@ func main() {
 		})
 	})
 
-	router.POST("/clients", clientHandler.Create)
+	router.POST("/clientes", clientHandler.Create)
+	router.POST("/webhooks/pipefy/card-updated", webhookHandler.CardUpdated)
 
 	router.Run(":8080")
 
