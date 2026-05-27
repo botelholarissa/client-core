@@ -21,7 +21,7 @@ func (h *WebhookHandler) CardUpdated(c *gin.Context) {
 	var req models.PipefyWebhookRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "payload inválido"})
 		return
 	}
 

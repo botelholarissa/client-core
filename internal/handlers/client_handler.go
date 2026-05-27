@@ -24,7 +24,7 @@ func (h *ClientHandler) Create(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid request payload",
+			"error": "payload inválido",
 		})
 
 		return
