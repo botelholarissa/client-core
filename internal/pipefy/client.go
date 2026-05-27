@@ -7,17 +7,13 @@ import (
 	"client-core/internal/models"
 )
 
-type PipefyClient struct {
-	// In a real client we would hold auth, endpoint, etc.
-}
+type PipefyClient struct{}
 
 func NewPipefyClient() *PipefyClient {
 	return &PipefyClient{}
 }
 
 func (p *PipefyClient) BuildCreateCardMutation(pipeID int64, request models.CreateClientRequest) string {
-	// map input fields to fields_attributes
-
 	fields := []string{
 		fmt.Sprintf(`{field_id: "cliente_nome", field_value: "%s"}`, escapeString(request.ClientName)),
 		fmt.Sprintf(`{field_id: "cliente_email", field_value: "%s"}`, escapeString(request.ClientEmail)),
@@ -31,7 +27,6 @@ func (p *PipefyClient) BuildCreateCardMutation(pipeID int64, request models.Crea
 }
 
 func (p *PipefyClient) BuildUpdateFieldsValuesMutation(nodeID int64, values map[string]string) string {
-	// values maps each Pipefy fieldId to its new value
 	pairs := []string{}
 	for fieldId, value := range values {
 		pairs = append(pairs, fmt.Sprintf(`{fieldId: "%s", value: "%s"}`, fieldId, escapeString(value)))
@@ -39,11 +34,6 @@ func (p *PipefyClient) BuildUpdateFieldsValuesMutation(nodeID int64, values map[
 
 	mutation := fmt.Sprintf(`mutation { updateFieldsValues(input: { nodeId: %d, values: [%s] }) { success } }`, nodeID, strings.Join(pairs, ", "))
 
-	return mutation
-}
-
-func (p *PipefyClient) BuildUpdateCardFieldMutation(cardID int64, fieldID string, newValue string) string {
-	mutation := fmt.Sprintf(`mutation { updateCardField(input: { card_id: %d, field_id: "%s", new_value: "%s" }) { card { id } } }`, cardID, fieldID, escapeString(newValue))
 	return mutation
 }
 
