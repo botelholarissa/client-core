@@ -45,3 +45,22 @@ func (h *ClientHandler) Create(c *gin.Context) {
 		"pipefy_mutation": mutation,
 	})
 }
+
+func (h *ClientHandler) GetByEmail(c *gin.Context) {
+	email := c.Param("email")
+
+	client, err := h.service.GetClient(email)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":       client.ID,
+		"nome":     client.Name,
+		"email":    client.Email,
+		"patrimonio": client.Assets,
+		"status":   client.Status,
+		"prioridade": client.Priority,
+	})
+}

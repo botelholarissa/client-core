@@ -42,6 +42,7 @@ func main() {
 	})
 
 	router.POST("/clientes", clientHandler.Create)
+	router.GET("/clientes/:email", clientHandler.GetByEmail)
 	router.POST("/webhooks/pipefy/card-updated", webhookHandler.CardUpdated)
 
 	router.Run(":8080")

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"errors"
 	"net/mail"
 	"strings"
@@ -53,4 +54,15 @@ func (s *ClientService) CreateClient(request models.CreateClientRequest) (string
 
 	mutation := s.pipefyClient.BuildCreateCardMutation(s.pipeID, request)
 	return mutation, nil
+}
+
+func (s *ClientService) GetClient(email string) (*models.Client, error) {
+	client, err := s.repository.FindByEmail(email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("cliente não encontrado")
+		}
+		return nil, errors.New("erro interno ao buscar cliente")
+	}
+	return client, nil
 }
