@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"strconv"
 
 	"client-core/internal/database"
 	"client-core/internal/handlers"
@@ -9,10 +11,16 @@ import (
 	"client-core/internal/repository"
 	"client-core/internal/service"
 
+	"github.com/joho/godotenv"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	db, err := database.Connect()
 
 	if err != nil {
@@ -26,7 +34,20 @@ func main() {
 	webhookRepository := repository.NewWebhookRepository(db)
 
 	pipefyClient := pipefy.NewPipefyClient()
-	clientService := service.NewClientService(clientRepository, pipefyClient, 34)
+
+	pipeIDValue := os.Getenv("PIPEFY_ID")
+
+	if pipeIDValue == "" {
+		log.Fatal("PIPEFY_ID is required")
+	}
+
+	pipeID, err := strconv.ParseInt(pipeIDValue, 10, 64)
+
+	if err != nil {
+		log.Fatal("invalid PIPEFY_ID")
+	}
+
+	clientService := service.NewClientService(clientRepository, pipefyClient, pipeID)
 
 	clientHandler := handlers.NewClientHandler(clientService)
 

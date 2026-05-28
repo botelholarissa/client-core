@@ -7,6 +7,9 @@ API para gerenciar clientes e simular integração com Pipefy.
 **Pré-requisitos:** Go 1.21+.
 
 ```bash
+# Copia o arquivo de ambiente
+cp .env.example .env
+
 # Sobe a API (porta 8080)
 go run cmd/main.go
 ```
