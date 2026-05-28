@@ -33,7 +33,7 @@ func (s *WebhookService) ProcessWebhook(req models.PipefyWebhookRequest) (string
 		return "", errors.New("erro interno ao verificar evento")
 	}
 	if processed {
-		return "", nil
+		return "Evento já processado.", nil
 	}
 
 	client, err := s.clientRepo.FindByEmail(req.ClientEmail)

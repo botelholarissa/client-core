@@ -117,14 +117,14 @@ var _ = Describe("WebhookService", func() {
 			Expect(err).To(MatchError("cliente não encontrado"))
 		})
 
-		It("returns an empty mutation when the event was already processed", func() {
+		It("returns n message when the event was already processed", func() {
 			err := webhookRepo.MarkProcessed(req.EventID, req.CardID)
 			Expect(err).ToNot(HaveOccurred())
 
 			mutation, err := svc.ProcessWebhook(req)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(mutation).To(BeEmpty())
+			Expect(mutation).To(Equal("Evento já processado."))
 		})
 	})
 })
