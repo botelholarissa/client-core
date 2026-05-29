@@ -1,39 +1,40 @@
 # Client Core
 
-API para gerenciar clientes e simular integração com Pipefy.
+API for managing clients and simulating integration with Pipefy.
 
-## Execução local
+## Local Execution
 
-**Pré-requisitos:** Go 1.21+.
+**Requirements:** Go 1.21+.
 
 ```bash
-# Copia o arquivo de ambiente
+# Copy environment file
 cp .env.example .env
 
-# Sobe a API (porta 8080)
+# Start API (port 8080)
 go run cmd/main.go
 ```
 
-Na primeira execução a aplicação cria o arquivo `clientcore.db` com as tabelas `clients` e `processed_events`. 
+On the first execution, the application creates the `clientcore.db` file with the `clients` and `processed_events` tables.
 
-## Testes
+## Tests
 
 ```bash
 go test ./...
 ```
-Os testes usam SQLite em memória com `modernc.org/sqlite`, isolados entre si. Não tocam no `clientcore.db` nem dependem de arquivo externo.
+
+Tests use in-memory SQLite with `modernc.org/sqlite`, fully isolated from each other. They do not touch `clientcore.db` or depend on external files.
 
 ## Endpoints
 
-- Criar cliente: `POST /clientes`
+* Create client: `POST /clientes`
 
 ```bash
 curl -X POST http://localhost:8080/clientes \
 	-H 'Content-Type: application/json' \
-	-d '{"cliente_nome":"João Silva","cliente_email":"joao.silva@email.com","tipo_solicitacao":"Atualização cadastral","valor_patrimonio":250000}'
+	-d '{"cliente_nome":"João Silva","cliente_email":"joao.silva@email.com","tipo_solicitacao":"Profile update","valor_patrimonio":250000}'
 ```
 
-- Webhook: `POST /webhooks/pipefy/card-updated`
+* Webhook: `POST /webhooks/pipefy/card-updated`
 
 ```bash
 curl -X POST http://localhost:8080/webhooks/pipefy/card-updated \
@@ -41,43 +42,43 @@ curl -X POST http://localhost:8080/webhooks/pipefy/card-updated \
 	-d '{"event_id":"evt_123","card_id":"card_456","cliente_email":"joao.silva@email.com","timestamp":"2026-05-18T12:00:00Z"}'
 ```
 
-- Consultar cliente: `GET /clientes/:email`
+* Get client: `GET /clientes/:email`
 
 ```bash
 curl http://localhost:8080/clientes/joao.silva@email.com
 ```
 
-## GraphQL (simulado)
+## Simulated GraphQL
 
-As mutations do Pipefy ficam em `internal/pipefy/client.go`:
+Pipefy mutations are located in `internal/pipefy/client.go`:
 
-- `createCard` — cria card com os dados do cliente
-- `updateFieldsValues` — atualiza status e prioridade
+* `createCard` — creates a card with client data
+* `updateFieldsValues` — updates status and priority
 
-Elas são montadas como string e retornadas na resposta não é feita chamada externa de fato.
+The mutations are assembled as strings and returned in the response. No external request is actually executed.
 
-## Nota sobre `tipo_solicitacao`
+## Note About `tipo_solicitacao`
 
-O campo é recebido na criação do cliente, mas não vai pro banco. Ele só é usado na mutation `createCard` do Pipefy. Como não participa de nenhuma regra de negócio, optei por não persistir. A adaptação pro formato do Pipefy fica isolada na camada de integração.
+This field is received during client creation but is not persisted in the database. It is only used in the Pipefy `createCard` mutation. Since it is not part of any business rule, I decided not to store it. Pipefy-specific formatting remains isolated within the integration layer.
 
-## Visão de Produção
+## Production Perspective
 
-Se fosse pra produção, a estrutura atual se adaptaria bem porque as camadas já são separadas. A ideia é trocar o que é local por serviços gerenciados, sem mexer na lógica.
+If this application were deployed to production, the current structure would adapt well because the layers are already separated. The idea would be to replace local components with managed services without changing the business logic.
 
-**O que subiria:**
+### What Would Change
 
-- **API Gateway** no lugar do Gin como porta de entrada. Receberia o HTTP, validaria autenticação e repassaria pro Lambda. Custaria por requisição e escalaria automaticamente.
+* **API Gateway** would replace Gin as the entry point. It would receive HTTP requests, validate authentication, and forward them to Lambda. It would scale automatically and charge per request.
 
-- **Lambda** rodaria o código Go que hoje está no `cmd/main.go`. Cada requisição viraria uma execução e a AWS alocaria, rodaria, desligaria. Não pagaria por máquina ociosa. Se ninguém chamasse a API por uma hora, não geraria custo. Se houvesse pico, escalaria sozinho.
+* **AWS Lambda** would run the Go code currently located in `cmd/main.go`. Each request would trigger an execution managed by AWS. There would be no cost for idle infrastructure, and scaling would happen automatically during traffic spikes.
 
-- **RDS (PostgreSQL)** ou **DynamoDB** no lugar do SQLite. Com RDS o backup, restauração e failover seriam simplificados. O DynamoDB escalaria horizontal sem muito esforço. Pra esse caso, ambos serviriam e eu usaria o RDS se a prioridade fosse SQL com joins e o DynamoDB se a prioridade fosse máxima escalabilidade.
+* **RDS (PostgreSQL)** or **DynamoDB** would replace SQLite. With RDS, backups, restoration, and failover would be simpler. DynamoDB would provide horizontal scalability with minimal operational effort. For this use case, both would work well: I would choose RDS for relational querying and joins, or DynamoDB for maximum scalability.
 
-**O que ficaria como está:**
+### What Would Stay the Same
 
-- A tabela `processed_events` com `event_id` como chave já resolveria idempotência. Em produção o banco garantiria que mesmo que o webhook chegasse duas vezes, o segundo processamento seria ignorado.
+* The `processed_events` table with `event_id` as a key already handles idempotency. In production, the database would guarantee that duplicated webhook events are ignored after the first successful processing.
 
-**Pra volume alto:**
+### For High Traffic Scenarios
 
-- **SQS** entraria como buffer. O API Gateway jogaria o evento na fila e voltaria 200 pro Pipefy na hora. O Lambda processaria depois no ritmo que aguentasse. Sem SQS, se o Lambda demorasse e chegassem mais requisições do que ele conseguisse atender, começaria a dar timeout.
+* **SQS** would work as a buffering layer. API Gateway would enqueue the event and immediately return HTTP 200 to Pipefy. Lambda would process messages asynchronously at a sustainable rate. Without SQS, slow processing combined with traffic spikes could lead to timeouts.
 
-- **CloudWatch** ou **Datadog** coletaria logs e métricas como tempo de execução, erros e volume de requisições. Daria pra configurar alarmes para acionar quando algo saísse do normal. Com Datadog também seria possível fazer dashboards para visualizar a saúde da aplicação de forma centralizada.
+* **CloudWatch** or **Datadog** would collect logs and metrics such as execution time, errors, and request volume. Alerts could be configured to notify abnormal behavior. With Datadog, centralized dashboards could also be created to monitor application health.
